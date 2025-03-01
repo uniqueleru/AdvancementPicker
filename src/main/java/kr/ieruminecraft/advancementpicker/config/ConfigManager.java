@@ -3,6 +3,8 @@ package kr.ieruminecraft.advancementpicker.config;
 import kr.ieruminecraft.advancementpicker.AdvancementPicker;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -68,7 +70,9 @@ public class ConfigManager {
      * @param path The path to the message in the language file
      * @param replacements A map of replacements to apply to the message
      * @return The message as a Component with replacements applied
+     * @deprecated Use {@link #getMessageComponent(String)} and Component.replaceText() instead
      */
+    @Deprecated
     public Component getMessageComponent(String path, Map<String, String> replacements) {
         String message = langConfig.getString(path);
         if (message == null) {
@@ -106,8 +110,37 @@ public class ConfigManager {
         return message;
     }
     
+    /**
+     * @deprecated Use {@link #getAdvancementDisplay(String)} instead
+     */
+    @Deprecated
     public String formatAdvancement(String advancementKey) {
         String formatted = config.getString("advancement-names." + advancementKey);
         return formatted != null ? formatted : advancementKey;
+    }
+    
+    /**
+     * Gets the official translated display name of an advancement
+     * 
+     * @param advancementKey The advancement key
+     * @return The translated display name
+     */
+    public Component getAdvancementDisplay(String advancementKey) {
+        // Try to get the advancement from the server
+        org.bukkit.advancement.Advancement advancement = Bukkit.getAdvancement(NamespacedKey.fromString(advancementKey));
+        
+        if (advancement != null && advancement.getDisplay() != null) {
+            // Return the official translation of the advancement
+            return advancement.getDisplay().title();
+        }
+        
+        // Fallback to config if the advancement is not found or has no display
+        String fallback = config.getString("advancement-names." + advancementKey);
+        if (fallback != null) {
+            return LegacyComponentSerializer.legacySection().deserialize(fallback);
+        }
+        
+        // Last resort: return the key itself
+        return Component.text(advancementKey);
     }
 }

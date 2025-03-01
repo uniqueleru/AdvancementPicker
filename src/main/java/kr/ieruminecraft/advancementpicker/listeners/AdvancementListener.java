@@ -2,14 +2,12 @@ package kr.ieruminecraft.advancementpicker.listeners;
 
 import kr.ieruminecraft.advancementpicker.AdvancementPicker;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextReplacementConfig;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerAdvancementDoneEvent;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class AdvancementListener implements Listener {
 
@@ -28,12 +26,16 @@ public class AdvancementListener implements Listener {
             plugin.getAdvancementManager().getPlayerAdvancement(player).equals(advancementKey)) {
             
             // Player completed their picked advancement
-            Map<String, String> replacements = new HashMap<>();
-            replacements.put("%player%", player.getName());
-            replacements.put("%advancement%", plugin.getConfigManager().formatAdvancement(advancementKey));
+            Component playerName = Component.text(player.getName());
+            Component advancementName = plugin.getConfigManager().getAdvancementDisplay(advancementKey);
             
-            // Get the message as a Component
-            Component message = plugin.getConfigManager().getMessageComponent("advancement.completed", replacements);
+            // Get the message template
+            Component messageTemplate = plugin.getConfigManager().getMessageComponent("advancement.completed");
+            
+            // Replace placeholders with actual values
+            Component message = messageTemplate
+                .replaceText(builder -> builder.matchLiteral("%player%").replacement(playerName))
+                .replaceText(builder -> builder.matchLiteral("%advancement%").replacement(advancementName));
             
             // Broadcast the message using the non-deprecated method
             Bukkit.broadcast(message);

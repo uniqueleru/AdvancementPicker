@@ -11,9 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
 
@@ -68,10 +66,15 @@ public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
         String advancementKey = plugin.getAdvancementManager().pickRandomAdvancement();
         plugin.getAdvancementManager().assignAdvancement(player, advancementKey);
         
-        Map<String, String> replacements = new HashMap<>();
-        replacements.put("%advancement%", plugin.getConfigManager().formatAdvancement(advancementKey));
+        // Get advancement display name using official translation
+        Component advancementName = plugin.getConfigManager().getAdvancementDisplay(advancementKey);
         
-        player.sendMessage(plugin.getConfigManager().getMessageComponent("advancement.picked", replacements));
+        // Get message template and replace placeholder
+        Component messageTemplate = plugin.getConfigManager().getMessageComponent("advancement.picked");
+        Component message = messageTemplate.replaceText(builder -> 
+            builder.matchLiteral("%advancement%").replacement(advancementName));
+        
+        player.sendMessage(message);
     }
 
     private void handleGiveUpCommand(CommandSender sender) {
@@ -87,10 +90,15 @@ public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
         
         String advancementKey = plugin.getAdvancementManager().removeAdvancement(player);
         
-        Map<String, String> replacements = new HashMap<>();
-        replacements.put("%advancement%", plugin.getConfigManager().formatAdvancement(advancementKey));
+        // Get advancement display name using official translation
+        Component advancementName = plugin.getConfigManager().getAdvancementDisplay(advancementKey);
         
-        player.sendMessage(plugin.getConfigManager().getMessageComponent("advancement.giveup", replacements));
+        // Get message template and replace placeholder
+        Component messageTemplate = plugin.getConfigManager().getMessageComponent("advancement.giveup");
+        Component message = messageTemplate.replaceText(builder -> 
+            builder.matchLiteral("%advancement%").replacement(advancementName));
+        
+        player.sendMessage(message);
     }
 
     private void handleReloadCommand(CommandSender sender) {
