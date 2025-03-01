@@ -64,6 +64,12 @@ public class AdvancementPickerGUI implements Listener {
      * 메인 카테고리 선택 GUI를 열어줍니다.
      */
     public void openMainGUI(Player player) {
+        // 플레이어 선택 초기화
+        if (!playerSelections.containsKey(player.getUniqueId())) {
+            Set<String> initialSelections = new HashSet<>(plugin.getConfigManager().getConfig().getStringList("advancements"));
+            playerSelections.put(player.getUniqueId(), initialSelections);
+        }
+        
         Inventory inventory = Bukkit.createInventory(null, 27, 
             Component.text("도전과제 선택기").color(NamedTextColor.DARK_PURPLE));
         
@@ -79,13 +85,13 @@ public class AdvancementPickerGUI implements Listener {
             
             // 카테고리에 속한 도전과제 수 계산
             Set<String> categoryAdvancements = getAllAdvancementsInCategory(categoryName);
-            List<String> configAdvancements = plugin.getConfigManager().getConfig().getStringList("advancements");
+            Set<String> selectedAdvancements = playerSelections.get(player.getUniqueId());
             
             int totalCount = categoryAdvancements.size();
             int selectedCount = 0;
             
             for (String adv : categoryAdvancements) {
-                if (configAdvancements.contains(adv)) {
+                if (selectedAdvancements.contains(adv)) {
                     selectedCount++;
                 }
             }
@@ -146,11 +152,17 @@ public class AdvancementPickerGUI implements Listener {
         session.setCurrentCategory(category);
         session.setCurrentPage(page);
         
+        // 플레이어 선택 확인
+        if (!playerSelections.containsKey(player.getUniqueId())) {
+            Set<String> initialSelections = new HashSet<>(plugin.getConfigManager().getConfig().getStringList("advancements"));
+            playerSelections.put(player.getUniqueId(), initialSelections);
+        }
+        
         // 카테고리 내 모든 도전과제 가져오기
         Set<String> categoryAdvancements = getAllAdvancementsInCategory(category);
         
-        // 현재 구성 가져오기
-        List<String> configAdvancements = plugin.getConfigManager().getConfig().getStringList("advancements");
+        // 현재 선택된 도전과제 가져오기
+        Set<String> selectedAdvancements = playerSelections.get(player.getUniqueId());
         
         // GUI 생성
         Inventory inventory = Bukkit.createInventory(null, 54, 
@@ -179,7 +191,7 @@ public class AdvancementPickerGUI implements Listener {
             String advKey = advancementsList.get(i);
             int slot = (i - startIndex);
             
-            boolean isSelected = configAdvancements.contains(advKey);
+            boolean isSelected = selectedAdvancements.contains(advKey);
             
             ItemStack advItem = createAdvancementItem(player, advKey, isSelected);
             inventory.setItem(slot, advItem);
@@ -337,37 +349,28 @@ public class AdvancementPickerGUI implements Listener {
         return result;
     }
     
+    // 선택된 도전과제를 추적하는 맵
+    private final Map<UUID, Set<String>> playerSelections = new HashMap<>();
+    
     /**
      * 설정을 저장합니다.
      */
     private void saveSettings(Player player) {
         // 현재 구성 가져오기
-        List<String> selectedAdvancements = new ArrayList<>();
+        Set<String> selectedAdvancements = playerSelections.getOrDefault(player.getUniqueId(), new HashSet<>());
         
-        // 서버에 등록된 모든 도전과제 순회하여 선택된 항목 추가
-        for (String category : CATEGORIES) {
-            Set<String> categoryAdvancements = getAllAdvancementsInCategory(category);
-            for (String advKey : categoryAdvancements) {
-                ItemStack testItem = createAdvancementItem(player, advKey, true);
-                ItemStack testItem2 = createAdvancementItem(player, advKey, false);
-                
-                // 도전과제를 아이템으로 만들고 인벤토리에서 찾기
-                for (AdvancementGUISession session : activeSessions.values()) {
-                    Inventory inv = session.getInventory();
-                    if (inv != null) {
-                        for (int i = 0; i < inv.getSize(); i++) {
-                            ItemStack item = inv.getItem(i);
-                            if (item != null && item.getType() == Material.LIME_DYE) {
-                                ItemMeta meta = item.getItemMeta();
-                                if (meta.getPersistentDataContainer().has(advancementKey, PersistentDataType.STRING)) {
-                                    String key = meta.getPersistentDataContainer().get(advancementKey, PersistentDataType.STRING);
-                                    if (key.equals(advKey)) {
-                                        selectedAdvancements.add(advKey);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
+        // 현재 열려있는 인벤토리에서 선택된 항목도 추가
+        AdvancementGUISession session = activeSessions.get(player.getUniqueId());
+        if (session != null && session.getInventory() != null) {
+            Inventory inv = session.getInventory();
+            
+            for (int i = 0; i < inv.getSize(); i++) {
+                ItemStack item = inv.getItem(i);
+                if (item != null && item.getType() == Material.LIME_DYE) {
+                    ItemMeta meta = item.getItemMeta();
+                    if (meta != null && meta.getPersistentDataContainer().has(advancementKey, PersistentDataType.STRING)) {
+                        String key = meta.getPersistentDataContainer().get(advancementKey, PersistentDataType.STRING);
+                        selectedAdvancements.add(key);
                     }
                 }
             }
@@ -377,6 +380,7 @@ public class AdvancementPickerGUI implements Listener {
         List<String> currentAdvancements = plugin.getConfigManager().getConfig().getStringList("advancements");
         
         // 선택되지 않은 카테고리의 도전과제는 유지
+        List<String> finalAdvancements = new ArrayList<>();
         for (String advKey : currentAdvancements) {
             boolean isCategoryAdvancement = false;
             for (String category : CATEGORIES) {
@@ -386,17 +390,23 @@ public class AdvancementPickerGUI implements Listener {
                 }
             }
             
-            if (!isCategoryAdvancement && !selectedAdvancements.contains(advKey)) {
-                selectedAdvancements.add(advKey);
+            if (!isCategoryAdvancement) {
+                finalAdvancements.add(advKey);
             }
         }
         
+        // 선택된 도전과제 추가
+        finalAdvancements.addAll(selectedAdvancements);
+        
         // 설정 파일 업데이트
-        plugin.getConfigManager().getConfig().set("advancements", selectedAdvancements);
+        plugin.getConfigManager().getConfig().set("advancements", finalAdvancements);
         plugin.saveConfig();
         
         // 도전과제 관리자 리로드
         plugin.getAdvancementManager().loadAdvancements();
+        
+        // 플레이어 선택 맵에서 제거 (세션 종료)
+        playerSelections.remove(player.getUniqueId());
         
         player.sendMessage(plugin.getConfigManager().getMessageComponent("config.advancements-updated"));
     }
@@ -439,6 +449,15 @@ public class AdvancementPickerGUI implements Listener {
                     String advKey = meta.getPersistentDataContainer().get(advancementKey, PersistentDataType.STRING);
                     boolean isCurrentlySelected = clickedItem.getType() == Material.LIME_DYE;
                     
+                    // 플레이어 선택 상태 업데이트
+                    Set<String> selections = playerSelections.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>());
+                    
+                    if (isCurrentlySelected) {
+                        selections.remove(advKey);
+                    } else {
+                        selections.add(advKey);
+                    }
+                    
                     // 아이템 교체
                     event.getClickedInventory().setItem(
                         event.getSlot(), 
@@ -463,6 +482,9 @@ public class AdvancementPickerGUI implements Listener {
         if (event.getPlayer() instanceof Player player) {
             // 세션 정리 (메모리 관리)
             activeSessions.remove(player.getUniqueId());
+            
+            // 플레이어가 인벤토리를 닫을 때 선택 상태 저장하지 않음
+            // 저장 버튼을 누르지 않고 닫으면 변경 사항 저장 안 됨
         }
     }
     
