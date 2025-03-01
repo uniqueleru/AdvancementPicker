@@ -2,6 +2,7 @@ package kr.ieruminecraft.advancementpicker.listeners;
 
 import kr.ieruminecraft.advancementpicker.AdvancementPicker;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -28,6 +29,13 @@ public class AdvancementListener implements Listener {
             Component playerName = Component.text(player.getName());
             Component[] advancementInfo = plugin.getConfigManager().getAdvancementInfo(advancementKey);
             Component advancementName = advancementInfo[0];
+            Component advancementDescription = advancementInfo[1];
+            
+            // Add hover event to show description when hovering over the advancement name
+            Component hoverable = advancementName;
+            if (advancementDescription != Component.empty()) {
+                hoverable = advancementName.hoverEvent(HoverEvent.showText(advancementDescription));
+            }
             
             // Get the message template
             Component messageTemplate = plugin.getConfigManager().getMessageComponent("advancement.completed");
@@ -35,7 +43,7 @@ public class AdvancementListener implements Listener {
             // Replace placeholders with actual values
             Component message = messageTemplate
                 .replaceText(builder -> builder.matchLiteral("%player%").replacement(playerName))
-                .replaceText(builder -> builder.matchLiteral("%advancement%").replacement(advancementName));
+                .replaceText(builder -> builder.matchLiteral("%advancement%").replacement(hoverable));
             
             // Broadcast the message using the non-deprecated method
             Bukkit.broadcast(message);

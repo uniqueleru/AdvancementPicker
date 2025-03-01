@@ -2,6 +2,7 @@ package kr.ieruminecraft.advancementpicker.commands;
 
 import kr.ieruminecraft.advancementpicker.AdvancementPicker;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -71,23 +72,19 @@ public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
         Component advancementName = advancementInfo[0];
         Component advancementDescription = advancementInfo[1];
         
-        // Get message template and replace placeholder
+        // Add hover event to show description when hovering over the advancement name
+        Component hoverable = advancementName;
+        if (advancementDescription != Component.empty()) {
+            hoverable = advancementName.hoverEvent(HoverEvent.showText(advancementDescription));
+        }
+        
+        // Get message template and replace placeholder with hoverable component
         Component messageTemplate = plugin.getConfigManager().getMessageComponent("advancement.picked");
         Component message = messageTemplate.replaceText(builder -> 
-            builder.matchLiteral("%advancement%").replacement(advancementName));
+            builder.matchLiteral("%advancement%").replacement(hoverable));
         
-        // Send the main message
+        // Send the main message with hover effect
         player.sendMessage(message);
-        
-        // Send the description if available
-        if (advancementDescription != Component.empty()) {
-            // Get description message template
-            Component descriptionTemplate = plugin.getConfigManager().getMessageComponent("advancement.description");
-            Component descriptionMessage = descriptionTemplate.replaceText(builder ->
-                builder.matchLiteral("%description%").replacement(advancementDescription));
-            
-            player.sendMessage(descriptionMessage);
-        }
     }
 
     private void handleGiveUpCommand(CommandSender sender) {
@@ -103,13 +100,21 @@ public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
         
         String advancementKey = plugin.getAdvancementManager().removeAdvancement(player);
         
-        // Get advancement display name using official translation
-        Component advancementName = plugin.getConfigManager().getAdvancementDisplay(advancementKey);
+        // Get advancement info (title and description)
+        Component[] advancementInfo = plugin.getConfigManager().getAdvancementInfo(advancementKey);
+        Component advancementName = advancementInfo[0];
+        Component advancementDescription = advancementInfo[1];
+        
+        // Add hover event to show description when hovering over the advancement name
+        Component hoverable = advancementName;
+        if (advancementDescription != Component.empty()) {
+            hoverable = advancementName.hoverEvent(HoverEvent.showText(advancementDescription));
+        }
         
         // Get message template and replace placeholder
         Component messageTemplate = plugin.getConfigManager().getMessageComponent("advancement.giveup");
         Component message = messageTemplate.replaceText(builder -> 
-            builder.matchLiteral("%advancement%").replacement(advancementName));
+            builder.matchLiteral("%advancement%").replacement(hoverable));
         
         player.sendMessage(message);
     }
