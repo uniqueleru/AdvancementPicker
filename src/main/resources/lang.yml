@@ -9,6 +9,7 @@ plugin:
 # 도전과제 관련 메시지
 advancement:
   picked: "&a당신의 도전과제가 선택되었습니다: &e%advancement%"
+  description: "&7→ &f%description%"
   completed: "&6[도전과제 알림] &e%player%&a님이 도전과제 &e%advancement%&a을(를) 완료했습니다!"
   giveup: "&c도전과제 &e%advancement%&c을(를) 포기했습니다."
 

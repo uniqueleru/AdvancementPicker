@@ -66,15 +66,28 @@ public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
         String advancementKey = plugin.getAdvancementManager().pickRandomAdvancement();
         plugin.getAdvancementManager().assignAdvancement(player, advancementKey);
         
-        // Get advancement display name using official translation
-        Component advancementName = plugin.getConfigManager().getAdvancementDisplay(advancementKey);
+        // Get advancement info (title and description)
+        Component[] advancementInfo = plugin.getConfigManager().getAdvancementInfo(advancementKey);
+        Component advancementName = advancementInfo[0];
+        Component advancementDescription = advancementInfo[1];
         
         // Get message template and replace placeholder
         Component messageTemplate = plugin.getConfigManager().getMessageComponent("advancement.picked");
         Component message = messageTemplate.replaceText(builder -> 
             builder.matchLiteral("%advancement%").replacement(advancementName));
         
+        // Send the main message
         player.sendMessage(message);
+        
+        // Send the description if available
+        if (advancementDescription != Component.empty()) {
+            // Get description message template
+            Component descriptionTemplate = plugin.getConfigManager().getMessageComponent("advancement.description");
+            Component descriptionMessage = descriptionTemplate.replaceText(builder ->
+                builder.matchLiteral("%description%").replacement(advancementDescription));
+            
+            player.sendMessage(descriptionMessage);
+        }
     }
 
     private void handleGiveUpCommand(CommandSender sender) {

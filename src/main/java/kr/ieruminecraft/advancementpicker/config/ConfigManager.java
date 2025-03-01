@@ -143,4 +143,36 @@ public class ConfigManager {
         // Last resort: return the key itself
         return Component.text(advancementKey);
     }
+    
+    /**
+     * Gets the official translated description of an advancement
+     * 
+     * @param advancementKey The advancement key
+     * @return The translated description or empty component if not found
+     */
+    public Component getAdvancementDescription(String advancementKey) {
+        // Try to get the advancement from the server
+        org.bukkit.advancement.Advancement advancement = Bukkit.getAdvancement(NamespacedKey.fromString(advancementKey));
+        
+        if (advancement != null && advancement.getDisplay() != null) {
+            // Return the official translation of the advancement description
+            return advancement.getDisplay().description();
+        }
+        
+        // Return empty component if not found
+        return Component.empty();
+    }
+    
+    /**
+     * Gets both the title and description of an advancement
+     * 
+     * @param advancementKey The advancement key
+     * @return A pair of Components: title and description
+     */
+    public Component[] getAdvancementInfo(String advancementKey) {
+        Component title = getAdvancementDisplay(advancementKey);
+        Component description = getAdvancementDescription(advancementKey);
+        
+        return new Component[] { title, description };
+    }
 }

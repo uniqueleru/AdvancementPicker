@@ -2,7 +2,6 @@ package kr.ieruminecraft.advancementpicker.listeners;
 
 import kr.ieruminecraft.advancementpicker.AdvancementPicker;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextReplacementConfig;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -27,7 +26,8 @@ public class AdvancementListener implements Listener {
             
             // Player completed their picked advancement
             Component playerName = Component.text(player.getName());
-            Component advancementName = plugin.getConfigManager().getAdvancementDisplay(advancementKey);
+            Component[] advancementInfo = plugin.getConfigManager().getAdvancementInfo(advancementKey);
+            Component advancementName = advancementInfo[0];
             
             // Get the message template
             Component messageTemplate = plugin.getConfigManager().getMessageComponent("advancement.completed");
