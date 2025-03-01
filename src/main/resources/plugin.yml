@@ -1,5 +1,21 @@
 name: AdvancementPicker
 version: '1.0.0'
-main: kr.ieruminecraft.advancementpicker
+main: kr.ieruminecraft.advancementpicker.AdvancementPicker
 api-version: '1.21'
 authors: [ leru ]
+description: Plugin to pick and complete randomly assigned advancements
+
+commands:
+  advancementpicker:
+    description: Main command for the AdvancementPicker plugin
+    usage: /advancementpicker <pick|giveup|reload|help>
+    aliases: [ap]
+    permission: advancementpicker.use
+
+permissions:
+  advancementpicker.use:
+    description: Allows using the base AdvancementPicker commands
+    default: true
+  advancementpicker.reload:
+    description: Allows reloading the plugin configuration
+    default: op
