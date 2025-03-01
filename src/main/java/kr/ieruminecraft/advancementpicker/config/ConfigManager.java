@@ -176,7 +176,7 @@ public class ConfigManager {
      */
     private boolean isEmpty(Component component) {
         // Convert to plain text and check if it's empty
-        String plainText = LegacyComponentSerializer.plainText().serialize(component);
+        String plainText = LegacyComponentSerializer.builder().build().serialize(component);
         return plainText == null || plainText.trim().isEmpty();
     }
     

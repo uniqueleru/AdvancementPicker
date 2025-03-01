@@ -73,10 +73,9 @@ public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
         Component advancementDescription = advancementInfo[1];
         
         // Add hover event to show description when hovering over the advancement name
-        Component hoverable = advancementName;
-        if (!advancementDescription.equals(Component.empty()) && !advancementDescription.equals(Component.text(""))) {
-            hoverable = advancementName.hoverEvent(HoverEvent.showText(advancementDescription));
-        }
+        final Component hoverable = !advancementDescription.equals(Component.empty()) && !advancementDescription.equals(Component.text(""))
+            ? advancementName.hoverEvent(HoverEvent.showText(advancementDescription))
+            : advancementName;
         
         // Get message template and replace placeholder with hoverable component
         Component messageTemplate = plugin.getConfigManager().getMessageComponent("advancement.picked");
@@ -106,10 +105,9 @@ public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
         Component advancementDescription = advancementInfo[1];
         
         // Add hover event to show description when hovering over the advancement name
-        Component hoverable = advancementName;
-        if (!advancementDescription.equals(Component.empty()) && !advancementDescription.equals(Component.text(""))) {
-            hoverable = advancementName.hoverEvent(HoverEvent.showText(advancementDescription));
-        }
+        final Component hoverable = !advancementDescription.equals(Component.empty()) && !advancementDescription.equals(Component.text(""))
+            ? advancementName.hoverEvent(HoverEvent.showText(advancementDescription))
+            : advancementName;
         
         // Get message template and replace placeholder
         Component messageTemplate = plugin.getConfigManager().getMessageComponent("advancement.giveup");
