@@ -156,11 +156,28 @@ public class ConfigManager {
         
         if (advancement != null && advancement.getDisplay() != null) {
             // Return the official translation of the advancement description
-            return advancement.getDisplay().description();
+            Component description = advancement.getDisplay().description();
+            
+            // Check if the description is actually empty (some advancements might have empty descriptions)
+            if (description == null || description.equals(Component.empty()) || 
+                description.equals(Component.text("")) || isEmpty(description)) {
+                return Component.empty();
+            }
+            
+            return description;
         }
         
         // Return empty component if not found
         return Component.empty();
+    }
+    
+    /**
+     * Helper method to check if a Component is effectively empty
+     */
+    private boolean isEmpty(Component component) {
+        // Convert to plain text and check if it's empty
+        String plainText = LegacyComponentSerializer.plainText().serialize(component);
+        return plainText == null || plainText.trim().isEmpty();
     }
     
     /**

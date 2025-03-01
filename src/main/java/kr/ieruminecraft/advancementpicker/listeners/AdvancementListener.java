@@ -33,7 +33,7 @@ public class AdvancementListener implements Listener {
             
             // Add hover event to show description when hovering over the advancement name
             Component hoverable = advancementName;
-            if (advancementDescription != Component.empty()) {
+            if (!advancementDescription.equals(Component.empty()) && !advancementDescription.equals(Component.text(""))) {
                 hoverable = advancementName.hoverEvent(HoverEvent.showText(advancementDescription));
             }
             
