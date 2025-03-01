@@ -1,0 +1,5 @@
+name: AdvancementPicker
+version: '1.0.0'
+main: kr.ieruminecraft.advancementpicker
+api-version: '1.21'
+authors: [ leru ]
