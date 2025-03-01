@@ -20,14 +20,17 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
+import java.util.Iterator;
 
 public class AdvancementPickerGUI implements Listener {
 
     private final AdvancementPicker plugin;
-    private final Map<UUID, AdvancementGUISession> activeSessions = new HashMap<>();
     private final NamespacedKey advancementKey;
-    private final NamespacedKey sessionPageKey;
+    private final NamespacedKey pageKey;
     private final NamespacedKey actionKey;
+    
+    // 선택된 도전과제를 추적하는 맵
+    private final Map<UUID, Set<String>> playerSelections = new HashMap<>();
 
     // 카테고리 정의
     private final String[] CATEGORIES = {
@@ -50,16 +53,32 @@ public class AdvancementPickerGUI implements Listener {
     private static final String ACTION_TOGGLE = "toggle";
     private static final String ACTION_BACK = "back";
     private static final String ACTION_SAVE = "save";
+    
+    // 인벤토리 제목 정의 (식별용)
+    private static final String MAIN_TITLE = "도전과제 선택기";
+    private static final String CATEGORY_TITLE_FORMAT = "%s 도전과제";
+    
+    // 디버깅 로그 활성화 여부
+    private static final boolean DEBUG_ENABLED = true;
 
     public AdvancementPickerGUI(AdvancementPicker plugin) {
         this.plugin = plugin;
         this.advancementKey = new NamespacedKey(plugin, "advancement_key");
-        this.sessionPageKey = new NamespacedKey(plugin, "session_page");
+        this.pageKey = new NamespacedKey(plugin, "page");
         this.actionKey = new NamespacedKey(plugin, "action");
         
         // 이벤트 리스너 등록
         Bukkit.getPluginManager().registerEvents(this, plugin);
         Bukkit.getLogger().info("AdvancementPickerGUI: Event listener registered");
+    }
+    
+    /**
+     * 디버그 로그를 출력합니다.
+     */
+    private void logDebug(String message) {
+        if (DEBUG_ENABLED) {
+            Bukkit.getLogger().info("[AdvancementPickerGUI] " + message);
+        }
     }
 
     /**
@@ -73,7 +92,7 @@ public class AdvancementPickerGUI implements Listener {
         }
         
         Inventory inventory = Bukkit.createInventory(null, 27, 
-            Component.text("도전과제 선택기").color(NamedTextColor.DARK_PURPLE));
+            Component.text(MAIN_TITLE).color(NamedTextColor.DARK_PURPLE));
         
         // 카테고리 아이템 생성
         for (int i = 0; i < CATEGORIES.length; i++) {
@@ -130,14 +149,6 @@ public class AdvancementPickerGUI implements Listener {
         saveItem.setItemMeta(saveMeta);
         inventory.setItem(22, saveItem);
         
-        // 세션 정보 저장
-        AdvancementGUISession session = new AdvancementGUISession();
-        session.setCurrentCategory(null);
-        session.setCurrentPage(0);
-        session.setInventory(inventory);
-        
-        activeSessions.put(player.getUniqueId(), session);
-        
         player.openInventory(inventory);
     }
     
@@ -145,15 +156,6 @@ public class AdvancementPickerGUI implements Listener {
      * 특정 카테고리의 도전과제를 보여주는 GUI를 열어줍니다.
      */
     public void openCategoryGUI(Player player, String category, int page) {
-        AdvancementGUISession session = activeSessions.get(player.getUniqueId());
-        if (session == null) {
-            session = new AdvancementGUISession();
-            activeSessions.put(player.getUniqueId(), session);
-        }
-        
-        session.setCurrentCategory(category);
-        session.setCurrentPage(page);
-        
         // 플레이어 선택 확인
         if (!playerSelections.containsKey(player.getUniqueId())) {
             Set<String> initialSelections = new HashSet<>(plugin.getConfigManager().getConfig().getStringList("advancements"));
@@ -168,7 +170,7 @@ public class AdvancementPickerGUI implements Listener {
         
         // GUI 생성
         Inventory inventory = Bukkit.createInventory(null, 54, 
-            Component.text(formatCategoryName(category) + " 도전과제").color(NamedTextColor.DARK_PURPLE));
+            Component.text(String.format(CATEGORY_TITLE_FORMAT, formatCategoryName(category))).color(NamedTextColor.DARK_PURPLE));
         
         // 페이징 계산
         int itemsPerPage = 45; // 9x5
@@ -200,7 +202,7 @@ public class AdvancementPickerGUI implements Listener {
         }
         
         // 네비게이션 버튼 추가
-        addNavigationButtons(inventory, page, totalPages);
+        addNavigationButtons(inventory, page, totalPages, category);
         
         // 저장 버튼
         ItemStack saveItem = new ItemStack(Material.EMERALD);
@@ -220,9 +222,6 @@ public class AdvancementPickerGUI implements Listener {
         backMeta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, ACTION_BACK);
         backItem.setItemMeta(backMeta);
         inventory.setItem(45, backItem);
-        
-        // 세션 업데이트
-        session.setInventory(inventory);
         
         player.openInventory(inventory);
     }
@@ -284,7 +283,7 @@ public class AdvancementPickerGUI implements Listener {
     /**
      * 네비게이션 버튼을 추가합니다.
      */
-    private void addNavigationButtons(Inventory inventory, int currentPage, int totalPages) {
+    private void addNavigationButtons(Inventory inventory, int currentPage, int totalPages, String category) {
         // 이전 페이지 버튼
         if (currentPage > 0) {
             ItemStack prevItem = new ItemStack(Material.ARROW);
@@ -295,7 +294,8 @@ public class AdvancementPickerGUI implements Listener {
                 .color(NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
             prevMeta.lore(prevLore);
             prevMeta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, ACTION_PREV);
-            prevMeta.getPersistentDataContainer().set(sessionPageKey, PersistentDataType.INTEGER, currentPage - 1);
+            prevMeta.getPersistentDataContainer().set(pageKey, PersistentDataType.INTEGER, currentPage - 1);
+            prevMeta.getPersistentDataContainer().set(advancementKey, PersistentDataType.STRING, category);
             prevItem.setItemMeta(prevMeta);
             inventory.setItem(48, prevItem);
         }
@@ -310,7 +310,8 @@ public class AdvancementPickerGUI implements Listener {
                 .color(NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
             nextMeta.lore(nextLore);
             nextMeta.getPersistentDataContainer().set(actionKey, PersistentDataType.STRING, ACTION_NEXT);
-            nextMeta.getPersistentDataContainer().set(sessionPageKey, PersistentDataType.INTEGER, currentPage + 1);
+            nextMeta.getPersistentDataContainer().set(pageKey, PersistentDataType.INTEGER, currentPage + 1);
+            nextMeta.getPersistentDataContainer().set(advancementKey, PersistentDataType.STRING, category);
             nextItem.setItemMeta(nextMeta);
             inventory.setItem(50, nextItem);
         }
@@ -337,7 +338,7 @@ public class AdvancementPickerGUI implements Listener {
         Set<String> result = new HashSet<>();
         
         // 서버에 등록된 모든 도전과제 순회
-        Iterator<Advancement> iterator = Bukkit.advancementIterator();
+        Iterator<Advancement> iterator = Bukkit.getServer().advancementIterator();
         while (iterator.hasNext()) {
             Advancement advancement = iterator.next();
             String key = advancement.getKey().toString();
@@ -351,32 +352,53 @@ public class AdvancementPickerGUI implements Listener {
         return result;
     }
     
-    // 선택된 도전과제를 추적하는 맵
-    private final Map<UUID, Set<String>> playerSelections = new HashMap<>();
+    /**
+     * 주어진 도전과제가 어떤 카테고리에 속하는지 확인합니다.
+     */
+    private boolean isAdvancementInCategory(String advKey, String[] categories) {
+        for (String category : categories) {
+            if (advKey.startsWith("minecraft:" + category + "/")) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * 선택된 도전과제 목록을 업데이트합니다.
+     */
+    private void updatePlayerSelection(Player player, String advKey, boolean isSelected) {
+        Set<String> selections = playerSelections.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>());
+        
+        if (isSelected) {
+            selections.add(advKey);
+        } else {
+            selections.remove(advKey);
+        }
+        
+        logDebug("Updated selection for " + player.getName() + ": " + advKey + " is now " + (isSelected ? "selected" : "unselected"));
+    }
+    
+    /**
+     * 인벤토리 제목을 통해 카테고리를 추출합니다.
+     * 예: "엔드 도전과제" -> "end"
+     */
+    private String getCategoryFromTitle(String title) {
+        for (String category : CATEGORIES) {
+            String formattedName = formatCategoryName(category);
+            if (title.startsWith(formattedName)) {
+                return category;
+            }
+        }
+        return null;
+    }
     
     /**
      * 설정을 저장합니다.
      */
     private void saveSettings(Player player) {
-        // 현재 구성 가져오기
+        // 플레이어 선택 가져오기
         Set<String> selectedAdvancements = playerSelections.getOrDefault(player.getUniqueId(), new HashSet<>());
-        
-        // 현재 열려있는 인벤토리에서 선택된 항목도 추가
-        AdvancementGUISession session = activeSessions.get(player.getUniqueId());
-        if (session != null && session.getInventory() != null) {
-            Inventory inv = session.getInventory();
-            
-            for (int i = 0; i < inv.getSize(); i++) {
-                ItemStack item = inv.getItem(i);
-                if (item != null && item.getType() == Material.LIME_DYE) {
-                    ItemMeta meta = item.getItemMeta();
-                    if (meta != null && meta.getPersistentDataContainer().has(advancementKey, PersistentDataType.STRING)) {
-                        String key = meta.getPersistentDataContainer().get(advancementKey, PersistentDataType.STRING);
-                        selectedAdvancements.add(key);
-                    }
-                }
-            }
-        }
         
         // 기존 선택된 목록 가져오기
         List<String> currentAdvancements = plugin.getConfigManager().getConfig().getStringList("advancements");
@@ -384,21 +406,18 @@ public class AdvancementPickerGUI implements Listener {
         // 선택되지 않은 카테고리의 도전과제는 유지
         List<String> finalAdvancements = new ArrayList<>();
         for (String advKey : currentAdvancements) {
-            boolean isCategoryAdvancement = false;
-            for (String category : CATEGORIES) {
-                if (advKey.startsWith("minecraft:" + category + "/")) {
-                    isCategoryAdvancement = true;
-                    break;
-                }
-            }
-            
-            if (!isCategoryAdvancement) {
+            // 이 도전과제가 GUI에서 관리하는 카테고리에 속하지 않는 경우 유지
+            if (!isAdvancementInCategory(advKey, CATEGORIES)) {
                 finalAdvancements.add(advKey);
             }
         }
         
-        // 선택된 도전과제 추가
-        finalAdvancements.addAll(selectedAdvancements);
+        // 선택된 도전과제 추가 (중복 없음)
+        for (String advKey : selectedAdvancements) {
+            if (!finalAdvancements.contains(advKey)) {
+                finalAdvancements.add(advKey);
+            }
+        }
         
         // 설정 파일 업데이트
         plugin.getConfigManager().getConfig().set("advancements", finalAdvancements);
@@ -407,7 +426,7 @@ public class AdvancementPickerGUI implements Listener {
         // 도전과제 관리자 리로드
         plugin.getAdvancementManager().loadAdvancements();
         
-        // 플레이어 선택 맵에서 제거 (세션 종료)
+        // 플레이어 선택 맵에서 제거
         playerSelections.remove(player.getUniqueId());
         
         player.sendMessage(plugin.getConfigManager().getMessageComponent("config.advancements-updated"));
@@ -417,80 +436,106 @@ public class AdvancementPickerGUI implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
         
-        // Debug
-        Bukkit.getLogger().info("AdvancementPickerGUI: Click by " + player.getName());
+        // 인벤토리의 제목을 확인
+        Component title = event.getView().title();
+        String titleText = title.toString();
+        logDebug("Inventory title: " + titleText);
         
-        if (event.getClickedInventory() == null) {
-            Bukkit.getLogger().info("AdvancementPickerGUI: Null inventory");
+        // 도전과제 선택기 인벤토리인지 확인 (제목에 포함된 문자열로 판단)
+        boolean isMainGUI = titleText.contains(MAIN_TITLE);
+        boolean isCategoryGUI = false;
+        
+        // 카테고리 GUI 확인
+        String currentCategory = null;
+        for (String category : CATEGORIES) {
+            String formattedCategory = formatCategoryName(category);
+            // 제목에 카테고리명과 "도전과제"가 모두 포함되어 있는지 확인
+            if (titleText.contains(formattedCategory) && titleText.contains("도전과제")) {
+                isCategoryGUI = true;
+                currentCategory = category;
+                logDebug("Detected category: " + category);
+                break;
+            }
+        }
+        
+        // 플러그인의 GUI가 아니면 처리하지 않음
+        if (!isMainGUI && !isCategoryGUI) {
+            logDebug("Not a plugin GUI: " + titleText);
             return;
         }
         
-        if (!activeSessions.containsKey(player.getUniqueId())) {
-            Bukkit.getLogger().info("AdvancementPickerGUI: No active session");
-            return;
-        }
-        
+        // 클릭 이벤트 취소 (인벤토리 아이템 이동 방지)
         event.setCancelled(true);
         
+        // 클릭된 아이템이 없으면 처리하지 않음
         ItemStack clickedItem = event.getCurrentItem();
         if (clickedItem == null || !clickedItem.hasItemMeta()) {
-            Bukkit.getLogger().info("AdvancementPickerGUI: No item or meta");
             return;
         }
         
+        // 액션 키가 없으면 처리하지 않음
         ItemMeta meta = clickedItem.getItemMeta();
         if (!meta.getPersistentDataContainer().has(actionKey, PersistentDataType.STRING)) {
-            Bukkit.getLogger().info("AdvancementPickerGUI: No action key");
             return;
         }
         
+        // 액션 처리
         String action = meta.getPersistentDataContainer().get(actionKey, PersistentDataType.STRING);
-        Bukkit.getLogger().info("AdvancementPickerGUI: Action = " + action);
+        logDebug("Player " + player.getName() + " clicked item with action: " + action);
         
         switch (action) {
             case ACTION_CATEGORY:
-                String category = meta.getPersistentDataContainer().get(advancementKey, PersistentDataType.STRING);
-                openCategoryGUI(player, category, 0);
+                // 메인 화면에서 카테고리 선택
+                if (isMainGUI) {
+                    String category = meta.getPersistentDataContainer().get(advancementKey, PersistentDataType.STRING);
+                    if (category != null) {
+                        logDebug("Opening category: " + category);
+                        openCategoryGUI(player, category, 0);
+                    }
+                }
                 break;
                 
             case ACTION_PREV:
             case ACTION_NEXT:
-                if (meta.getPersistentDataContainer().has(sessionPageKey, PersistentDataType.INTEGER)) {
-                    int page = meta.getPersistentDataContainer().get(sessionPageKey, PersistentDataType.INTEGER);
-                    AdvancementGUISession session = activeSessions.get(player.getUniqueId());
-                    if (session != null && session.getCurrentCategory() != null) {
-                        openCategoryGUI(player, session.getCurrentCategory(), page);
+                // 페이지 이동
+                if (meta.getPersistentDataContainer().has(pageKey, PersistentDataType.INTEGER)) {
+                    int page = meta.getPersistentDataContainer().get(pageKey, PersistentDataType.INTEGER);
+                    String category = meta.getPersistentDataContainer().get(advancementKey, PersistentDataType.STRING);
+                    if (category != null) {
+                        logDebug("Navigating to page: " + page + " in category: " + category);
+                        openCategoryGUI(player, category, page);
                     }
                 }
                 break;
                 
             case ACTION_TOGGLE:
+                // 도전과제 토글
                 if (meta.getPersistentDataContainer().has(advancementKey, PersistentDataType.STRING)) {
                     String advKey = meta.getPersistentDataContainer().get(advancementKey, PersistentDataType.STRING);
                     boolean isCurrentlySelected = clickedItem.getType() == Material.LIME_DYE;
                     
                     // 플레이어 선택 상태 업데이트
-                    Set<String> selections = playerSelections.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>());
-                    
-                    if (isCurrentlySelected) {
-                        selections.remove(advKey);
-                    } else {
-                        selections.add(advKey);
-                    }
+                    updatePlayerSelection(player, advKey, !isCurrentlySelected);
                     
                     // 아이템 교체
                     event.getClickedInventory().setItem(
                         event.getSlot(), 
                         createAdvancementItem(player, advKey, !isCurrentlySelected)
                     );
+                    
+                    logDebug("Selection toggled: " + advKey + " is now " + (!isCurrentlySelected ? "selected" : "unselected"));
                 }
                 break;
                 
             case ACTION_BACK:
+                // 뒤로 가기 (카테고리 GUI에서 메인 GUI로)
+                logDebug("Going back to main menu");
                 openMainGUI(player);
                 break;
                 
             case ACTION_SAVE:
+                // 설정 저장
+                logDebug("Saving settings");
                 saveSettings(player);
                 player.closeInventory();
                 break;
@@ -499,50 +544,28 @@ public class AdvancementPickerGUI implements Listener {
     
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
-        if (event.getPlayer() instanceof Player player) {
-            Bukkit.getLogger().info("AdvancementPickerGUI: Inventory closed by " + player.getName());
-            
-            // 세션 정리 (메모리 관리)
-            AdvancementGUISession session = activeSessions.remove(player.getUniqueId());
-            if (session != null) {
-                Bukkit.getLogger().info("AdvancementPickerGUI: Session removed for " + player.getName());
+        if (!(event.getPlayer() instanceof Player player)) return;
+        
+        // 인벤토리 제목 확인
+        Component title = event.getView().title();
+        String titleText = title.toString();
+        
+        // 플러그인의 GUI를 완전히 닫는 경우가 아니라면 (다른 GUI로 이동하는 경우) 선택 상태 유지
+        // 저장 버튼을 누르지 않고 완전히 닫는 경우에는 변경 사항이 저장되지 않음
+        
+        // 타이틀 기반으로 GUI 종류 판별  
+        boolean isPluginGUI = titleText.contains(MAIN_TITLE);
+        if (!isPluginGUI) {
+            for (String category : CATEGORIES) {
+                String formattedCategory = formatCategoryName(category);
+                if (titleText.contains(formattedCategory) && titleText.contains("도전과제")) {
+                    isPluginGUI = true;
+                    break;
+                }
             }
-            
-            // 플레이어가 인벤토리를 닫을 때 선택 상태 저장하지 않음
-            // 저장 버튼을 누르지 않고 닫으면 변경 사항 저장 안 됨
-        }
-    }
-    
-    /**
-     * GUI 세션 정보를 관리하는 내부 클래스
-     */
-    private static class AdvancementGUISession {
-        private String currentCategory;
-        private int currentPage;
-        private Inventory inventory;
-        
-        public String getCurrentCategory() {
-            return currentCategory;
         }
         
-        public void setCurrentCategory(String currentCategory) {
-            this.currentCategory = currentCategory;
-        }
-        
-        public int getCurrentPage() {
-            return currentPage;
-        }
-        
-        public void setCurrentPage(int currentPage) {
-            this.currentPage = currentPage;
-        }
-        
-        public Inventory getInventory() {
-            return inventory;
-        }
-        
-        public void setInventory(Inventory inventory) {
-            this.inventory = inventory;
-        }
+        logDebug("Inventory closed by " + player.getName() + ": " + titleText + 
+                 (isPluginGUI ? " (plugin GUI)" : ""));
     }
 }
