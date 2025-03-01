@@ -8,7 +8,7 @@ description: Plugin to pick and complete randomly assigned advancements
 commands:
   advancementpicker:
     description: Main command for the AdvancementPicker plugin
-    usage: /advancementpicker <pick|giveup|reload|help>
+    usage: /advancementpicker <pick|giveup|config|reload|help>
     aliases: [ap]
     permission: advancementpicker.use
 
@@ -18,4 +18,7 @@ permissions:
     default: true
   advancementpicker.reload:
     description: Allows reloading the plugin configuration
+    default: op
+  advancementpicker.config:
+    description: Allows configuring advancements through GUI
     default: op

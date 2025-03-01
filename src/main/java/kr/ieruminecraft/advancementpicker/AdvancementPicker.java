@@ -2,6 +2,7 @@ package kr.ieruminecraft.advancementpicker;
 
 import kr.ieruminecraft.advancementpicker.commands.AdvancementPickerCommand;
 import kr.ieruminecraft.advancementpicker.config.ConfigManager;
+import kr.ieruminecraft.advancementpicker.gui.AdvancementPickerGUI;
 import kr.ieruminecraft.advancementpicker.listeners.AdvancementListener;
 import kr.ieruminecraft.advancementpicker.managers.AdvancementManager;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -12,6 +13,7 @@ public final class AdvancementPicker extends JavaPlugin {
     private static AdvancementPicker instance;
     private ConfigManager configManager;
     private AdvancementManager advancementManager;
+    private AdvancementPickerGUI advancementPickerGUI;
 
     @Override
     public void onEnable() {
@@ -20,6 +22,7 @@ public final class AdvancementPicker extends JavaPlugin {
         // Initialize managers
         configManager = new ConfigManager(this);
         advancementManager = new AdvancementManager(this);
+        advancementPickerGUI = new AdvancementPickerGUI(this);
         
         // Register events
         getServer().getPluginManager().registerEvents(new AdvancementListener(this), this);
@@ -50,6 +53,10 @@ public final class AdvancementPicker extends JavaPlugin {
     
     public AdvancementManager getAdvancementManager() {
         return advancementManager;
+    }
+    
+    public AdvancementPickerGUI getAdvancementPickerGUI() {
+        return advancementPickerGUI;
     }
     
     public void reload() {

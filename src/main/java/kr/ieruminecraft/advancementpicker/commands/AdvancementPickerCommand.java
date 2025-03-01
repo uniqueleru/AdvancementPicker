@@ -37,6 +37,7 @@ public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
             case "pick" -> handlePickCommand(sender);
             case "giveup" -> handleGiveUpCommand(sender);
             case "reload" -> handleReloadCommand(sender);
+            case "config", "gui", "edit" -> handleConfigCommand(sender);
             case "help" -> showHelp(sender);
             default -> {
                 sender.sendMessage(plugin.getConfigManager().getMessageComponent("error.unknown-command"));
@@ -45,6 +46,20 @@ public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
         }
 
         return true;
+    }
+    
+    private void handleConfigCommand(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(plugin.getConfigManager().getMessageComponent("error.player-only"));
+            return;
+        }
+        
+        if (!player.hasPermission("advancementpicker.config")) {
+            player.sendMessage(plugin.getConfigManager().getMessageComponent("error.no-permission"));
+            return;
+        }
+        
+        plugin.getAdvancementPickerGUI().openMainGUI(player);
     }
 
     private void handlePickCommand(CommandSender sender) {
@@ -144,6 +159,10 @@ public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
             
             if (sender.hasPermission("advancementpicker.reload")) {
                 subCommands.add("reload");
+            }
+            
+            if (sender.hasPermission("advancementpicker.config")) {
+                subCommands.add("config");
             }
             
             subCommands.add("help");
