@@ -57,7 +57,9 @@ public class AdvancementPickerGUI implements Listener {
         this.sessionPageKey = new NamespacedKey(plugin, "session_page");
         this.actionKey = new NamespacedKey(plugin, "action");
         
+        // 이벤트 리스너 등록
         Bukkit.getPluginManager().registerEvents(this, plugin);
+        Bukkit.getLogger().info("AdvancementPickerGUI: Event listener registered");
     }
 
     /**
@@ -414,18 +416,36 @@ public class AdvancementPickerGUI implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (event.getClickedInventory() == null) return;
-        if (!activeSessions.containsKey(player.getUniqueId())) return;
+        
+        // Debug
+        Bukkit.getLogger().info("AdvancementPickerGUI: Click by " + player.getName());
+        
+        if (event.getClickedInventory() == null) {
+            Bukkit.getLogger().info("AdvancementPickerGUI: Null inventory");
+            return;
+        }
+        
+        if (!activeSessions.containsKey(player.getUniqueId())) {
+            Bukkit.getLogger().info("AdvancementPickerGUI: No active session");
+            return;
+        }
         
         event.setCancelled(true);
         
         ItemStack clickedItem = event.getCurrentItem();
-        if (clickedItem == null || !clickedItem.hasItemMeta()) return;
+        if (clickedItem == null || !clickedItem.hasItemMeta()) {
+            Bukkit.getLogger().info("AdvancementPickerGUI: No item or meta");
+            return;
+        }
         
         ItemMeta meta = clickedItem.getItemMeta();
-        if (!meta.getPersistentDataContainer().has(actionKey, PersistentDataType.STRING)) return;
+        if (!meta.getPersistentDataContainer().has(actionKey, PersistentDataType.STRING)) {
+            Bukkit.getLogger().info("AdvancementPickerGUI: No action key");
+            return;
+        }
         
         String action = meta.getPersistentDataContainer().get(actionKey, PersistentDataType.STRING);
+        Bukkit.getLogger().info("AdvancementPickerGUI: Action = " + action);
         
         switch (action) {
             case ACTION_CATEGORY:
@@ -480,8 +500,13 @@ public class AdvancementPickerGUI implements Listener {
     @EventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
         if (event.getPlayer() instanceof Player player) {
+            Bukkit.getLogger().info("AdvancementPickerGUI: Inventory closed by " + player.getName());
+            
             // 세션 정리 (메모리 관리)
-            activeSessions.remove(player.getUniqueId());
+            AdvancementGUISession session = activeSessions.remove(player.getUniqueId());
+            if (session != null) {
+                Bukkit.getLogger().info("AdvancementPickerGUI: Session removed for " + player.getName());
+            }
             
             // 플레이어가 인벤토리를 닫을 때 선택 상태 저장하지 않음
             // 저장 버튼을 누르지 않고 닫으면 변경 사항 저장 안 됨
