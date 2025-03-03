@@ -1,7 +1,6 @@
 package kr.ieruminecraft.advancementpicker.gui;
 
 import kr.ieruminecraft.advancementpicker.AdvancementPicker;
-import net.kyori.adventure.text.Component;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
