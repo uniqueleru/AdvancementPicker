@@ -11,6 +11,8 @@ advancement:
   picked: "&a당신의 도전과제가 선택되었습니다: &e%advancement% &7(마우스를 올려 설명 보기)"
   completed: "&6[도전과제 알림] &e%player%&a님이 도전과제 &e%advancement%&a을(를) 완료했습니다!"
   giveup: "&c도전과제 &e%advancement%&c을(를) 포기했습니다."
+  title: " "  # 공백 타이틀 (화면을 너무 가리지 않도록)
+  subtitle: "&e선택된 도전과제: &6%advancement%"
 
 # 에러 메시지
 error:

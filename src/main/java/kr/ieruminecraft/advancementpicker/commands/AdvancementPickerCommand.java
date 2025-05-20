@@ -99,6 +99,23 @@ public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
         
         // Send the main message with hover effect
         player.sendMessage(message);
+        
+        // Show title and subtitle
+        Component titleComponent = plugin.getConfigManager().getMessageComponent("advancement.title");
+        Component subtitleTemplate = plugin.getConfigManager().getMessageComponent("advancement.subtitle");
+        Component subtitleComponent = subtitleTemplate.replaceText(builder ->
+            builder.matchLiteral("%advancement%").replacement(advancementName));
+        
+        // Display title and subtitle to the player (using times of 10, 70, 20 for fade in, stay, fade out)
+        player.showTitle(net.kyori.adventure.title.Title.title(
+            titleComponent,
+            subtitleComponent,
+            net.kyori.adventure.title.Title.Times.times(
+                java.time.Duration.ofMillis(500),  // fade in
+                java.time.Duration.ofMillis(3500), // stay
+                java.time.Duration.ofMillis(1000)  // fade out
+            )
+        ));
     }
 
     private void handleGiveUpCommand(CommandSender sender) {
