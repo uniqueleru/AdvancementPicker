@@ -11,6 +11,7 @@ advancement:
   picked: "&a당신의 도전과제가 선택되었습니다: &e%advancement% &7(마우스를 올려 설명 보기)"
   completed: "&6[도전과제 알림] &e%player%&a님이 도전과제 &e%advancement%&a을(를) 완료했습니다!"
   giveup: "&c도전과제 &e%advancement%&c을(를) 포기했습니다."
+  info: "&a현재 진행 중인 도전과제: &e%advancement% &7(마우스를 올려 설명 보기)"
   title: " "  # 공백 타이틀 (화면을 너무 가리지 않도록)
   subtitle: "&e선택된 도전과제: &6%advancement%"
 
@@ -30,4 +31,4 @@ config:
 
 # 명령어 관련 메시지
 command:
-  help: "&6=== &e도전과제 픽커 명령어 &6===\n&e/ap pick &7- 랜덤 도전과제를 선택합니다\n&e/ap giveup &7- 현재 도전과제를 포기합니다\n&e/ap config &7- 도전과제 설정 GUI를 엽니다 (권한 필요)\n&e/ap reload &7- 구성 파일을 다시 로드합니다 (권한 필요)\n&e/ap help &7- 이 도움말을 표시합니다"
+  help: "&6=== &e도전과제 픽커 명령어 &6===\n&e/ap pick &7- 랜덤 도전과제를 선택합니다\n&e/ap giveup &7- 현재 도전과제를 포기합니다\n&e/ap info &7- 현재 진행 중인 도전과제를 확인합니다\n&e/ap config &7- 도전과제 설정 GUI를 엽니다 (권한 필요)\n&e/ap reload &7- 구성 파일을 다시 로드합니다 (권한 필요)\n&e/ap help &7- 이 도움말을 표시합니다"

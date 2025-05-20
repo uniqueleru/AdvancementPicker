@@ -36,6 +36,7 @@ public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
         switch (subCommand) {
             case "pick" -> handlePickCommand(sender);
             case "giveup" -> handleGiveUpCommand(sender);
+            case "info" -> handleInfoCommand(sender);
             case "reload" -> handleReloadCommand(sender);
             case "config", "gui", "edit" -> handleConfigCommand(sender);
             case "help" -> showHelp(sender);
@@ -148,6 +149,38 @@ public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
         
         player.sendMessage(message);
     }
+    
+    private void handleInfoCommand(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(plugin.getConfigManager().getMessageComponent("error.player-only"));
+            return;
+        }
+        
+        if (!plugin.getAdvancementManager().hasActiveAdvancement(player)) {
+            player.sendMessage(plugin.getConfigManager().getMessageComponent("error.no-active-advancement"));
+            return;
+        }
+        
+        // Get player's active advancement
+        String advancementKey = plugin.getAdvancementManager().getPlayerAdvancement(player);
+        
+        // Get advancement info (title and description)
+        Component[] advancementInfo = plugin.getConfigManager().getAdvancementInfo(advancementKey);
+        Component advancementName = advancementInfo[0];
+        Component advancementDescription = advancementInfo[1];
+        
+        // Add hover event to show description when hovering over the advancement name
+        final Component hoverable = !advancementDescription.equals(Component.empty()) && !advancementDescription.equals(Component.text(""))
+            ? advancementName.hoverEvent(HoverEvent.showText(advancementDescription))
+            : advancementName;
+        
+        // Get message template and replace placeholder
+        Component messageTemplate = plugin.getConfigManager().getMessageComponent("advancement.info");
+        Component message = messageTemplate.replaceText(builder -> 
+            builder.matchLiteral("%advancement%").replacement(hoverable));
+        
+        player.sendMessage(message);
+    }
 
     private void handleReloadCommand(CommandSender sender) {
         if (!sender.hasPermission("advancementpicker.reload")) {
@@ -173,6 +206,7 @@ public class AdvancementPickerCommand implements CommandExecutor, TabCompleter {
             List<String> subCommands = new ArrayList<>();
             subCommands.add("pick");
             subCommands.add("giveup");
+            subCommands.add("info");
             
             if (sender.hasPermission("advancementpicker.reload")) {
                 subCommands.add("reload");
